@@ -63,6 +63,7 @@ const MainArea: FC<MainAreaProps> = ({ isOnePlayer }) => {
 		return -1
 	}
 
+	// Оригинальный метод для компьютера
 	const makeComputerMove = (board: CellValue[][]) => {
 		const tryWinningMove = (player: 0 | 1) => {
 			for (let row = 0; row < 3; row++) {
@@ -106,6 +107,66 @@ const MainArea: FC<MainAreaProps> = ({ isOnePlayer }) => {
 		return null
 	}
 
+	// Новый метод с использованием алгоритма Минимакс
+	const minimax = (
+		newBoard: CellValue[][],
+		player: 0 | 1,
+		depth = 0
+	): number => {
+		const winner = checkWinner(newBoard)
+
+		if (winner !== null) {
+			if (winner === 0) return -10 + depth
+			if (winner === 1) return 10 - depth
+			if (winner === -1) return 0
+		}
+
+		const availableMoves = []
+		for (let i = 0; i < 3; i++) {
+			for (let j = 0; j < 3; j++) {
+				if (newBoard[i][j] === null) {
+					availableMoves.push({ row: i, col: j })
+				}
+			}
+		}
+
+		const moves: { score: number; move: { row: number; col: number } }[] = []
+
+		for (const move of availableMoves) {
+			const newBoardCopy = newBoard.map(row => [...row])
+			newBoardCopy[move.row][move.col] = player
+			const score = minimax(newBoardCopy, player === 0 ? 1 : 0, depth + 1)
+			moves.push({ score, move })
+		}
+
+		if (player === 1) {
+			return Math.max(...moves.map(m => m.score))
+		} else {
+			return Math.min(...moves.map(m => m.score))
+		}
+	}
+
+	const getBestMove = (board: CellValue[][]) => {
+		let bestScore = -Infinity
+		let bestMove = null
+
+		for (let i = 0; i < 3; i++) {
+			for (let j = 0; j < 3; j++) {
+				if (board[i][j] === null) {
+					const newBoardCopy = board.map(row => [...row])
+					newBoardCopy[i][j] = 1
+					const score = minimax(newBoardCopy, 0)
+					if (score > bestScore) {
+						bestScore = score
+						bestMove = { row: i, col: j }
+					}
+				}
+			}
+		}
+
+		return bestMove
+	}
+
 	const onClickHandler = (rowIndex: number, colIndex: number) => {
 		if (arr[rowIndex][colIndex] !== null) return
 
@@ -130,7 +191,9 @@ const MainArea: FC<MainAreaProps> = ({ isOnePlayer }) => {
 			return
 		}
 
-		const computerMove = makeComputerMove(newArr)
+		// const computerMove = makeComputerMove(newArr) // Оригинальный метод
+		const computerMove = getBestMove(newArr) // Новый метод с Минимакс
+
 		if (computerMove) {
 			newArr[computerMove.row][computerMove.col] = 0
 			setArr(newArr)
